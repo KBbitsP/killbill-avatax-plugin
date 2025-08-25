@@ -5,7 +5,7 @@ Kill Bill tax plugin for [Avalara AvaTax](https://www.avalara.com/us/en/products
 
 This integration delegates computation of sales taxes to Avalara, which will appear directly on Kill Bill invoices.
 
-The easiest way to get started with the AvaTax plugin is to take a look at our [AvaTax plugin Manual](https://docs.killbill.io/latest/avatax-plugin) which provides detailed instructions for installing, configuring and using the plugin.
+The easiest way to get started with the AvaTax plugin is to take a look at our [AvaTax Plugin Manual](https://docs.killbill.io/latest/avatax-plugin) which provides detailed instructions for installing, configuring and using the plugin.
 
 ## Kill Bill compatibility
 

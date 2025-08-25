@@ -1,9 +1,11 @@
 # AvaTax plugin
 ![Maven Central](https://img.shields.io/maven-central/v/org.kill-bill.billing.plugin.java/avatax-plugin?color=blue&label=Maven%20Central)
 
-Kill Bill tax plugin for [Avalara AvaTax](http://www.avalara.com/products/avatax/) and [Avalara Tax Rates API](http://taxratesapi.avalara.com/).
+Kill Bill tax plugin for [Avalara AvaTax](https://www.avalara.com/us/en/products/calculations.html).
 
 This integration delegates computation of sales taxes to Avalara, which will appear directly on Kill Bill invoices.
+
+The easiest way to get started with the AvaTax plugin is to take a look at our [AvaTax plugin Manual](https://docs.killbill.io/latest/avatax-plugin) which provides detailed instructions for installing, configuring and using the plugin.
 
 ## Kill Bill compatibility
 
@@ -42,9 +44,9 @@ org.killbill.invoice.plugin=killbill-avatax
 
 ## Configuration
 
-### Avalara AvaTax
+The AvaTax plugin requires some properties to be configured either globally or on a per-tenant basis. 
 
-The following properties are required:
+The following properties are mandatory:
 
 * `org.killbill.billing.plugin.avatax.url`: AvaTax endpoint (e.g. https://sandbox-rest.avatax.com/api/v2)
 * `org.killbill.billing.plugin.avatax.accountId`: your AvaTax account number
@@ -55,30 +57,13 @@ The following properties are optional:
 * `org.killbill.billing.plugin.avatax.companyCode`: your default company code (can be passed using the plugin property `companyCode`)
 * `org.killbill.billing.plugin.avatax.commitDocuments`: whether invoices should be committed to Avalara
 * `org.killbill.billing.plugin.avatax.adjustments.lenientMode`, when true Avatax-plugin skips any adjustment items from Invoice for which the previousInvoiceId is not present (i.e. missing) or else leads to IllegalStateException and fails to generate invoice
-
-### TaxRates API
-
-The TaxRates API is a free-to-use, no cost option for estimating sales tax rates. Any customer can request a [free AvaTax account](https://developer.avalara.com/api-reference/avatax/rest/v2/methods/Free/RequestFreeTrial/) and make use of the TaxRates API.
-
-The following properties are required:
-
-* `org.killbill.billing.plugin.avatax.taxratesapi.url`: Tax Rates API endpoint (e.g. https://sandbox-rest.avatax.com/api/v2)
-* `org.killbill.billing.plugin.avatax.taxratesapi.accountId`: your account ID
-* `org.killbill.billing.plugin.avatax.taxratesapi.licenseKey`: your license Key
-
-You can pass the `rateType` plugin property to specify which rate(s) to take into account.
-
-### Common properties
-
-For both APIs, the following properties are optional:
-
 * `org.killbill.billing.plugin.avatax.proxyHost`: proxy host
 * `org.killbill.billing.plugin.avatax.proxyPort`: proxy port
 * `org.killbill.billing.plugin.avatax.strictSSL`: if false, unverified certificates are trusted
 * `org.killbill.billing.plugin.avatax.connectTimeout`: maximum time in millisecond the client can wait when connecting to a remote host
 * `org.killbill.billing.plugin.avatax.requestTimeout`: maximum time in millisecond the client waits until the response is completed
 
-These properties can be specified globally via System Properties or on a per tenant basis:
+These properties can be specified globally via System Properties or on a per-tenant basis:
 
 ```
 curl -v \
@@ -93,6 +78,8 @@ org.killbill.billing.plugin.avatax.accountId=YYY
 org.killbill.billing.plugin.avatax.licenseKey=ZZZ' \
      http://127.0.0.1:8080/1.0/kb/tenants/uploadPluginConfig/killbill-avatax
 ```
+
+Refer to the [Avatax Plugin Manual](https://docs.killbill.io/latest/avatax-plugin#plugin_configuration) for further details.
 
 ## AvaTax tax calculation details
 
@@ -115,107 +102,31 @@ Here is how the main Avalara fields map to Kill Bill:
 
 Documents in Avalara are not automatically voided (as this will depend on your dunning configuration).
 
-See also the [AvaTax Rails mountable engine](https://github.com/killbill/killbill-avatax-ui), which helps you administrate the plugin.
+See also the [AvaTax Kaui Integration](https://docs.killbill.io/latest/avatax-plugin#_kaui_integration), which helps you administrate the plugin via Kaui.
 
 ### Marking an account as tax exempt
 
-Set the `customerUsageType` custom field on the account object (e.g. `E` for charitable or benevolent organizations).
+The plugin allows accounts to be exempted from tax.  Set the `customerUsageType` custom field on the account object (e.g. `E` for charitable or benevolent organizations).
 
-See [Handling tax exempt customers](https://help.avalara.com/Avalara_AvaTax_Update/Options_for_exempting_customers) for more details.
+See [Marking an Account as Tax Exempt](https://docs.killbill.io/latest/avatax-plugin#_marking_an_account_as_tax_exempt) for further details.
 
-Note that you can also skip an account entirely by setting the plugin property `AVALARA_SKIP` at runtime (the plugin property value doesn't matter, it just cannot be blank).
+### Skipping Tax Calculation
+
+You can skip an account entirely by setting the plugin property `AVALARA_SKIP` at runtime (the plugin property value doesn't matter, it just cannot be blank). See [Skipping Taxation](https://docs.killbill.io/latest/avatax-plugin#_skipping_taxation) for further details.
 
 ### Setting tax codes
+
+The plugin allows setting tax codes on products. This allows taxing products differently. See [Tax Calculation by Product Tax Code](https://docs.killbill.io/latest/avatax-plugin#_tax_calculation_by_product_tax_code) for further details.
 
 There are several ways to configure tax codes:
 
 * Set the `taxCode_<INVOICE_ITEM_ID>` plugin property
 * Set the `taxCode` custom field on the invoice item object
-* Store the tax code in the plugin for each product in your catalog:
-
-```
-curl -v \
-     -X POST \
-     -u admin:password \
-     -H 'X-Killbill-ApiKey: bob' \
-     -H 'X-Killbill-ApiSecret: lazar' \
-     -H 'X-Killbill-CreatedBy: admin' \
-     -H 'Content-Type: application/json' \
-     -d '{"productName":"Super","taxCode":"DC010200"}' \
-     http://127.0.0.1:8080/plugins/killbill-avatax/taxCodes
-```
-
-To list all tax codes configured in the plugin:
-
-```
-curl -v \
-     -u admin:password \
-     -H 'X-Killbill-ApiKey: bob' \
-     -H 'X-Killbill-ApiSecret: lazar' \
-     http://127.0.0.1:8080/plugins/killbill-avatax/taxCodes
-```
-
-To find a particular tax code for a product configured in the plugin:
-
-```
-curl -v \
-     -u admin:password \
-     -H 'X-Killbill-ApiKey: bob' \
-     -H 'X-Killbill-ApiSecret: lazar' \
-     http://127.0.0.1:8080/plugins/killbill-avatax/taxCodes/Super
-```
-
-To remove a tax code for a product configured in the plugin:
-
-```
-curl -v \
-     -X DELETE \
-     -u admin:password \
-     -H 'X-Killbill-ApiKey: bob' \
-     -H 'X-Killbill-ApiSecret: lazar' \
-     -H 'X-Killbill-CreatedBy: admin' \
-     http://127.0.0.1:8080/plugins/killbill-avatax/taxCodes/Super
-```
+* Store the tax code in the plugin for each product in your catalog via  [Tax Code APIs](https://docs.killbill.io/latest/avatax-plugin#_tax_code_apis)
 
 ### Transactions API
 
-The plugin offers convenient pass-through APIs to retrieve, commit, and void documents:
-
-```
-curl -v \
-     -u admin:password \
-     -H 'X-Killbill-ApiKey: bob' \
-     -H 'X-Killbill-ApiSecret: lazar' \
-     -H 'X-Killbill-CreatedBy: admin' \
-     -H 'Accept: application/json' \
-     http://127.0.0.1:8080/plugins/killbill-avatax/transactions?kbInvoiceId=<INVOICE_ID>
-
-curl -v \
-     -u admin:password \
-     -H 'X-Killbill-ApiKey: bob' \
-     -H 'X-Killbill-ApiSecret: lazar' \
-     -H 'X-Killbill-CreatedBy: admin' \
-     -H 'Accept: application/json' \
-     http://127.0.0.1:8080/plugins/killbill-avatax/transactions/<CODE>
-
-curl -v \
-     -X POST \
-     -u admin:password \
-     -H 'X-Killbill-ApiKey: bob' \
-     -H 'X-Killbill-ApiSecret: lazar' \
-     -H 'X-Killbill-CreatedBy: admin' \
-     -H 'Accept: application/json' \
-     http://127.0.0.1:8080/plugins/killbill-avatax/transactions/<CODE>/commit
-
-curl -v \
-     -X POST \
-     -u admin:password \
-     -H 'X-Killbill-ApiKey: bob' \
-     -H 'X-Killbill-ApiSecret: lazar' \
-     -H 'X-Killbill-CreatedBy: admin' \
-     -H 'Accept: application/json' \
-     http://127.0.0.1:8080/plugins/killbill-avatax/transactions/<CODE>/void
-```
+The plugin offers convenient pass-through APIs to retrieve, commit, and void documents. These are documented in the [AvaTax manual](https://docs.killbill.io/latest/avatax-plugin#_transaction_apis).
 
 ## About
 
